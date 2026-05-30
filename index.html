@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación Numérica - Misael Del Carpio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .module-card { margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 10px; border: none; }
+        .card-header { background-color: #0d6efd; color: white; border-radius: 10px 10px 0 0 !important; font-weight: bold; }
+        .result-box { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin-top: 15px; }
+        canvas { max-height: 300px; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <header class="text-center mb-5">
+        <h1 class="display-5 fw-bold">Simulación Numérica de Abastecimiento y Precios</h1>
+        <p class="text-muted">Desarrollado por: <strong>Misael Alejandro Del Carpio Gamboa</strong></p>
+        <div class="alert alert-info text-start mt-4">
+            <strong>Contexto del problema:</strong> Ante la situación actual de abastecimiento, transporte e incremento de precios, este proyecto aplica métodos numéricos para analizar escenarios críticos de distribución, reservas y pérdida del poder adquisitivo. El objetivo es usar el modelado matemático para entender el impacto de estas variables.
+        </div>
+    </header>
+
+    <div class="card module-card">
+        <div class="card-header">Escenario A: Optimización del abastecimiento (Sistemas de Ecuaciones)</div>
+        <div class="card-body">
+            <p>Se utiliza el <strong>Método de Gauss-Seidel</strong> para resolver la distribución de carburantes desde 3 plantas hacia 3 zonas (Norte, Centro, Sur), determinando la cantidad exacta para cubrir la demanda considerando las restricciones de transporte.</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <label>Matriz de distribución (Coeficientes y Demanda):</label>
+                    <textarea id="matrizA" class="form-control font-monospace" rows="4">4, -1, 0, 20
+-1, 4, -1, 30
+0, -1, 4, 20</textarea>
+                    <small class="text-muted">Formato: a11, a12, a13, b1 (separados por comas)</small>
+                    <button class="btn btn-primary mt-3 w-100" onclick="resolverGaussSeidel()">Calcular Distribución</button>
+                </div>
+                <div class="col-md-6">
+                    <div id="resultadoA" class="result-box">Esperando datos...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card module-card">
+        <div class="card-header">Escenario B: Vaciado crítico de reservas (Ecuaciones Diferenciales)</div>
+        <div class="card-body">
+            <p>Se aplica el <strong>Método de Euler</strong> para simular cómo disminuye la reserva de combustible ante una tasa de consumo superior a la entrada diaria. Modelo: $R'(t) = \text{entrada} - \text{consumo}$</p>
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="number" id="reservaInicial" class="form-control mb-2" value="1000" placeholder="Reserva inicial (L)">
+                    <input type="number" id="tasaEntrada" class="form-control mb-2" value="200" placeholder="Entrada diaria (L/día)">
+                    <input type="number" id="tasaConsumo" class="form-control mb-2" value="350" placeholder="Consumo diario (L/día)">
+                    <button class="btn btn-primary w-100" onclick="resolverEuler()">Simular Vaciado</button>
+                </div>
+                <div class="col-md-8">
+                    <canvas id="graficoB"></canvas>
+                    <div id="resultadoB" class="mt-2 text-danger fw-bold"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card module-card">
+        <div class="card-header">Escenario C: Curva de precios (Interpolación)</div>
+        <div class="card-body">
+            <p>Usando la <strong>Interpolación de Lagrange</strong>, reconstruimos la curva de precios de la papa en el mes para estimar el costo en un día donde no se tomaron registros.</p>
+            <div class="row">
+                <div class="col-md-5">
+                    <label>Días conocidos:</label>
+                    <input type="text" id="diasX" class="form-control mb-2" value="1, 5, 10, 15, 20, 30">
+                    <label>Precios (Bs):</label>
+                    <input type="text" id="preciosY" class="form-control mb-2" value="8, 10, 13, 16, 19, 22">
+                    <label>Día a estimar:</label>
+                    <input type="number" id="diaEstimar" class="form-control mb-2" value="12">
+                    <button class="btn btn-primary w-100" onclick="resolverLagrange()">Interpolar Precio</button>
+                </div>
+                <div class="col-md-7">
+                    <div id="resultadoC" class="result-box mb-3">Esperando datos...</div>
+                    <canvas id="graficoC"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card module-card">
+        <div class="card-header">Escenario D: Costo acumulado familiar (Integración Numérica)</div>
+        <div class="card-body">
+            <p>Se calcula el gasto acumulado en la canasta básica durante el mes usando la <strong>Regla del Trapecio</strong> para hallar el área bajo la curva de precios diarios, evidenciando la pérdida del poder adquisitivo.</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <p>Usaremos los precios interpolados del escenario anterior para calcular el gasto total del mes (área bajo la curva del día 1 al 30).</p>
+                    <button class="btn btn-primary w-100" onclick="resolverTrapecio()">Calcular Gasto Acumulado</button>
+                </div>
+                <div class="col-md-6">
+                    <div id="resultadoD" class="result-box">Esperando ejecución de la interpolación...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card module-card">
+        <div class="card-header">Escenario E: Umbrales críticos (Raíces de Ecuaciones)</div>
+        <div class="card-body">
+            <p>Aplicamos el <strong>Método de Bisección</strong> para encontrar el día exacto (raíz) en el que el costo acumulado de la canasta básica iguala el ingreso familiar mensual fijo. Función: $f(t) = CostoAcumulado(t) - IngresoFamiliar = 0$.</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <input type="number" id="ingresoFamiliar" class="form-control mb-2" value="350" placeholder="Ingreso límite (Bs)">
+                    <div class="d-flex gap-2 mb-2">
+                        <input type="number" id="intervaloA" class="form-control" value="1" placeholder="Día inicial [a]">
+                        <input type="number" id="intervaloB" class="form-control" value="30" placeholder="Día final [b]">
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="resolverBiseccion()">Calcular Día Crítico</button>
+                </div>
+                <div class="col-md-6">
+                    <div id="resultadoE" class="result-box">Esperando datos...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Variables globales para gráficos
+    let chartB = null;
+    let chartC = null;
+    let datosInterpoladosParaIntegracion = [];
+
+    // --- Escenario A: Gauss-Seidel ---
+    function resolverGaussSeidel() {
+        const text = document.getElementById('matrizA').value.trim().split('\n');
+        let a = [], b = [];
+        text.forEach(row => {
+            let cols = row.split(',').map(Number);
+            b.push(cols.pop());
+            a.push(cols);
+        });
+
+        let n = b.length;
+        let x = new Array(n).fill(0);
+        let tol = 0.001;
+        let iter = 0;
+        let maxIter = 50;
+        let error = 1;
+
+        while (error > tol && iter < maxIter) {
+            error = 0;
+            for (let i = 0; i < n; i++) {
+                let s = 0;
+                for (let j = 0; j < n; j++) {
+                    if (j !== i) s += a[i][j] * x[j];
+                }
+                let xNew = (b[i] - s) / a[i][i];
+                error = Math.max(error, Math.abs(xNew - x[i]));
+                x[i] = xNew;
+            }
+            iter++;
+        }
+
+        let resHtml = `<strong>Iteraciones:</strong> ${iter}<br><strong>Resultados de distribución:</strong><ul>`;
+        x.forEach((val, i) => {
+            resHtml += `<li>Zona ${i+1}: ${val.toFixed(2)} unidades</li>`;
+        });
+        resHtml += `</ul><small>El sistema converge indicando la carga óptima por zona ante los bloqueos.</small>`;
+        document.getElementById('resultadoA').innerHTML = resHtml;
+    }
+
+    // --- Escenario B: Euler ---
+    function resolverEuler() {
+        let R = parseFloat(document.getElementById('reservaInicial').value);
+        let entrada = parseFloat(document.getElementById('tasaEntrada').value);
+        let consumo = parseFloat(document.getElementById('tasaConsumo').value);
+        
+        let dias = [];
+        let reservas = [];
+        let t = 0;
+        let h = 1; // paso de 1 día
+        let diaCritico = -1;
+
+        while (R > 0 && t <= 30) {
+            dias.push(t);
+            reservas.push(R);
+            if (R < 100 && diaCritico === -1) diaCritico = t; // Consideramos crítico menor a 100L
+            R = R + h * (entrada - consumo);
+            t += h;
+        }
+        if(R < 0) { dias.push(t); reservas.push(0); }
+
+        document.getElementById('resultadoB').innerText = diaCritico !== -1 
+            ? `¡Alerta! La reserva entra en estado crítico (<100L) en el día ${diaCritico}. Se vacía en el día ${t}.` 
+            : `Las reservas aguantan los 30 días simulados.`;
+
+        if(chartB) chartB.destroy();
+        const ctx = document.getElementById('graficoB').getContext('2d');
+        chartB = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dias,
+                datasets: [{
+                    label: 'Nivel de Reserva (Litros)',
+                    data: reservas,
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: true
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // --- Escenario C: Lagrange ---
+    function interpolarLagrange(x, X, Y) {
+        let result = 0;
+        for (let i = 0; i < X.length; i++) {
+            let term = Y[i];
+            for (let j = 0; j < X.length; j++) {
+                if (j !== i) term = term * (x - X[j]) / (X[i] - X[j]);
+            }
+            result += term;
+        }
+        return result;
+    }
+
+    function resolverLagrange() {
+        const X = document.getElementById('diasX').value.split(',').map(Number);
+        const Y = document.getElementById('preciosY').value.split(',').map(Number);
+        const diaEstimar = parseFloat(document.getElementById('diaEstimar').value);
+
+        let precioEstimado = interpolarLagrange(diaEstimar, X, Y);
+        
+        document.getElementById('resultadoC').innerHTML = `El precio estimado para el <strong>Día ${diaEstimar}</strong> es de <strong>${precioEstimado.toFixed(2)} Bs.</strong>`;
+
+        // Generar curva completa para gráfica y para la integración posterior
+        let labelsMes = Array.from({length: 30}, (_, i) => i + 1);
+        datosInterpoladosParaIntegracion = labelsMes.map(dia => interpolarLagrange(dia, X, Y));
+
+        if(chartC) chartC.destroy();
+        const ctx = document.getElementById('graficoC').getContext('2d');
+        chartC = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labelsMes,
+                datasets: [
+                    {
+                        label: 'Curva de Precios (Bs)',
+                        data: datosInterpoladosParaIntegracion,
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Datos Conocidos',
+                        data: labelsMes.map(dia => X.includes(dia) ? Y[X.indexOf(dia)] : null),
+                        backgroundColor: 'black',
+                        pointRadius: 6,
+                        type: 'scatter'
+                    }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // --- Escenario D: Regla del Trapecio ---
+    function resolverTrapecio() {
+        if (datosInterpoladosParaIntegracion.length === 0) {
+            alert("Primero debes calcular la interpolación del Escenario C.");
+            return;
+        }
+        
+        let y = datosInterpoladosParaIntegracion;
+        let h = 1; // 1 día
+        let n = y.length - 1;
+        let suma = y[0] + y[n];
+
+        for (let i = 1; i < n; i++) {
+            suma += 2 * y[i];
+        }
+        let integral = (h / 2) * suma;
+
+        // Comparativa teórica sin inflación (tomando el precio del día 1 como fijo)
+        let gastoSinInflacion = y[0] * 30;
+        let perdida = integral - gastoSinInflacion;
+
+        document.getElementById('resultadoD').innerHTML = `
+            <strong>Gasto total acumulado:</strong> ${integral.toFixed(2)} Bs.<br>
+            <strong>Gasto ideal (sin subida de precios):</strong> ${gastoSinInflacion.toFixed(2)} Bs.<br>
+            <strong class="text-danger">Pérdida del poder adquisitivo:</strong> ${perdida.toFixed(2)} Bs.<br>
+            <small>Este es el dinero extra que la familia tuvo que destinar solo para mantener la misma canasta básica.</small>
+        `;
+    }
+
+    // --- Escenario E: Bisección ---
+    // Función de costo acumulado hasta el día t usando un ajuste polinomial aproximado del escenario C para simplificar el cálculo de la raíz
+    function calcularCostoHasta(t, X, Y) {
+        let h = 1;
+        let suma = interpolarLagrange(1, X, Y) + interpolarLagrange(t, X, Y);
+        for(let i = 2; i < Math.floor(t); i++){
+            suma += 2 * interpolarLagrange(i, X, Y);
+        }
+        return (h / 2) * suma;
+    }
+
+    function resolverBiseccion() {
+        const ingreso = parseFloat(document.getElementById('ingresoFamiliar').value);
+        let a = parseFloat(document.getElementById('intervaloA').value);
+        let b = parseFloat(document.getElementById('intervaloB').value);
+        
+        const X = document.getElementById('diasX').value.split(',').map(Number);
+        const Y = document.getElementById('preciosY').value.split(',').map(Number);
+
+        // f(t) = CostoAcumulado(t) - Ingreso
+        let fA = calcularCostoHasta(a, X, Y) - ingreso;
+        let fB = calcularCostoHasta(b, X, Y) - ingreso;
+
+        if (fA * fB > 0) {
+            document.getElementById('resultadoE').innerHTML = `<span class="text-danger">El ingreso no se cruza con el gasto en este intervalo. Prueba con un ingreso menor o revisa los días.</span>`;
+            return;
+        }
+
+        let c, fC;
+        let tol = 0.01;
+        let iter = 0;
+        let maxIter = 50;
+
+        while ((b - a) / 2 > tol && iter < maxIter) {
+            c = (a + b) / 2;
+            fC = calcularCostoHasta(c, X, Y) - ingreso;
+            
+            if (fC === 0) break;
+            if (fA * fC < 0) { b = c; } else { a = c; fA = fC; }
+            iter++;
+        }
+
+        document.getElementById('resultadoE').innerHTML = `
+            <strong>Día crítico (Umbral):</strong> Día ${c.toFixed(2)}<br>
+            <strong>Iteraciones:</strong> ${iter}<br>
+            <small>A partir de este día, el costo de la canasta básica supera el ingreso límite configurado, representando el quiebre económico de la familia.</small>
+        `;
+    }
+</script>
+</body>
+</html>
